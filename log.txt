@@ -1,4 +1,5 @@
-377df30 (HEAD -> main) Completed Task 2.1
-cf4ce02 (origin/main, origin/HEAD) Completed Task 1.2
+6659979 Completed Task 2.2
+377df30 Completed Task 2.1
+cf4ce02 Completed Task 1.2
 a401d57 Completed Task 1.1
 73e8b0a Initial commit
