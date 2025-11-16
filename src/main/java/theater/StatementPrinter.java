@@ -1,6 +1,7 @@
 package theater;
 
 import java.text.NumberFormat;
+import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 
@@ -41,16 +42,13 @@ public class StatementPrinter {
 
         final NumberFormat frmt = NumberFormat.getCurrencyInstance(Locale.US);
 
-        for (Performance p : invoice.getPerformances()) {
+        for (Performance p : getPerformances()) {
             final Play play = plays.get(p.getPlayID());
 
             int thisAmount = 0;
             switch (play.getType()) {
                 case "tragedy":
-                    thisAmount = base;
-                    if (p.getAudience() > Constants.TRAGEDY_AUDIENCE_THRESHOLD) {
-                        thisAmount += thousand * (p.getAudience() - thirty);
-                    }
+                    thisAmount = getAmount(p, base, thousand, thirty);
                     break;
                 case "comedy":
                     thisAmount = Constants.COMEDY_BASE_AMOUNT;
@@ -80,5 +78,18 @@ public class StatementPrinter {
         result.append(String.format("Amount owed is %s%n", frmt.format(totalAmount / hundred)));
         result.append(String.format("You earned %s credits%n", volumeCredits));
         return result.toString();
+    }
+
+    private List<Performance> getPerformances() {
+        return invoice.getPerformances();
+    }
+
+    private static int getAmount(Performance performance, int base, int thousand, int thirty) {
+        int thisAmount;
+        thisAmount = base;
+        if (performance.getAudience() > Constants.TRAGEDY_AUDIENCE_THRESHOLD) {
+            thisAmount += thousand * (performance.getAudience() - thirty);
+        }
+        return thisAmount;
     }
 }
