@@ -1,6 +1,7 @@
 package theater;
 
 import java.text.NumberFormat;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
@@ -35,50 +36,79 @@ public class StatementPrinter {
         final int thousand = 1000;
         final int thirty = 30;
         final int hundred = 100;
-        int totalAmount = 0;
-        int volumeCredits = 0;
-        final StringBuilder result = new StringBuilder("Statement for " + invoice.getCustomer()
-                + System.lineSeparator());
+        final List<Performance> performances = getPerformances();
+        final Map<String, Integer> amountsPerPerformance = new HashMap<>();
+        final Map<String, Integer> audiencePerPerformance = new HashMap<>();
 
-        for (Performance p : getPerformances()) {
+        final int totalAmount = getTotalAmount(performances, base, thousand, thirty, amountsPerPerformance,
+                audiencePerPerformance);
+
+        final StringBuilder result =
+                new StringBuilder("Statement for " + invoice.getCustomer() + System.lineSeparator());
+
+        for (Performance p : performances) {
             final Play play = plays.get(p.getPlayID());
 
-            int thisAmount = 0;
+            result.append(String.format(
+                    "  %s: %s (%s seats)%n",
+                    play.getName(),
+                    usd().format(amountsPerPerformance.get(p.getPlayID()) / hundred),
+                    audiencePerPerformance.get(p.getPlayID())
+            ));
+        }
+
+        result.append(String.format("Amount owed is %s%n", usd().format(totalAmount / hundred)));
+        result.append(String.format("You earned %s credits%n", getTotalVolumeCredits(performances)));
+
+        return result.toString();
+    }
+
+    private int getTotalAmount(List<Performance> performances, int base, int thousand,
+                               int thirty, Map<String, Integer> amountsPerPerformance,
+                               Map<String, Integer> audiencePerPerformance) {
+        int totalAmount = 0;
+
+        for (Performance p : performances) {
+            final Play play = plays.get(p.getPlayID());
+            int thisAmount;
+
             switch (play.getType()) {
                 case "tragedy":
                     thisAmount = getAmount(p, base, thousand, thirty);
                     break;
+
                 case "comedy":
                     thisAmount = Constants.COMEDY_BASE_AMOUNT;
                     if (p.getAudience() > Constants.COMEDY_AUDIENCE_THRESHOLD) {
                         thisAmount += Constants.COMEDY_OVER_BASE_CAPACITY_AMOUNT
-                                + (Constants.COMEDY_OVER_BASE_CAPACITY_PER_PERSON
-                                * (p.getAudience() - Constants.COMEDY_AUDIENCE_THRESHOLD));
+                                + Constants.COMEDY_OVER_BASE_CAPACITY_PER_PERSON
+                                * (p.getAudience() - Constants.COMEDY_AUDIENCE_THRESHOLD);
                     }
                     thisAmount += Constants.COMEDY_AMOUNT_PER_AUDIENCE * p.getAudience();
                     break;
+
                 default:
-                    throw new RuntimeException(String.format("unknown type: %s", play.getType()));
+                    throw new RuntimeException("Unknown type: " + play.getType());
             }
 
-            // add volume credits
-            volumeCredits += getVolumeCredits(p, play);
-
-            // print line for this order
-            result.append(String.format("  %s: %s (%s seats)%n", play.getName(),
-                    usd().format(thisAmount / hundred), p.getAudience()));
+            amountsPerPerformance.put(p.getPlayID(), thisAmount);
+            audiencePerPerformance.put(p.getPlayID(), p.getAudience());
             totalAmount += thisAmount;
         }
-        result.append(String.format("Amount owed is %s%n", usd().format(totalAmount / hundred)));
-        result.append(String.format("You earned %s credits%n", volumeCredits));
-        return result.toString();
+        return totalAmount;
     }
 
-    private static NumberFormat usd() {
-        return NumberFormat.getCurrencyInstance(Locale.US);
+    private int getTotalVolumeCredits(List<Performance> performances) {
+        int volumeCredits = 0;
+
+        for (Performance p : performances) {
+            final Play play = plays.get(p.getPlayID());
+            volumeCredits += getTotalVolumeCredits(p, play);
+        }
+        return volumeCredits;
     }
 
-    private static int getVolumeCredits(Performance performance, Play play) {
+    private static int getTotalVolumeCredits(Performance performance, Play play) {
         int result = 0;
         result += Math.max(performance.getAudience() - Constants.BASE_VOLUME_CREDIT_THRESHOLD, 0);
         // add extra credit for every five comedy attendees
@@ -86,6 +116,10 @@ public class StatementPrinter {
             result += performance.getAudience() / Constants.COMEDY_EXTRA_VOLUME_FACTOR;
         }
         return result;
+    }
+
+    private static NumberFormat usd() {
+        return NumberFormat.getCurrencyInstance(Locale.US);
     }
 
     private List<Performance> getPerformances() {

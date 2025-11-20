@@ -1,3 +1,5 @@
+d5c638a Completed Task 2.3
+156c7f1 Completed Task 2.2
 6659979 Completed Task 2.2
 377df30 Completed Task 2.1
 cf4ce02 Completed Task 1.2
