@@ -102,19 +102,24 @@ public class StatementPrinter {
         int volumeCredits = 0;
 
         for (Performance p : performances) {
-            final Play play = plays.get(p.getPlayID());
-            volumeCredits += getTotalVolumeCredits(p, play);
+            volumeCredits += getVolumeCredits(p);
         }
+
         return volumeCredits;
     }
 
-    private static int getTotalVolumeCredits(Performance performance, Play play) {
-        int result = 0;
-        result += Math.max(performance.getAudience() - Constants.BASE_VOLUME_CREDIT_THRESHOLD, 0);
-        // add extra credit for every five comedy attendees
+    private int getVolumeCredits(Performance performance) {
+        final Play play = plays.get(performance.getPlayID());
+
+        int result = Math.max(
+                performance.getAudience() - Constants.BASE_VOLUME_CREDIT_THRESHOLD,
+                0
+        );
+
         if ("comedy".equals(play.getType())) {
             result += performance.getAudience() / Constants.COMEDY_EXTRA_VOLUME_FACTOR;
         }
+
         return result;
     }
 
@@ -135,3 +140,4 @@ public class StatementPrinter {
         return thisAmount;
     }
 }
+
